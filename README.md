@@ -16,3 +16,10 @@ http://www.cantera.org/docs/sphinx/html/index.html
 
 SDToolbox:
 http://shepherd.caltech.edu/EDL/public/cantera/html/SD_Toolbox/
+
+Common problems:
+* negative temperature/density error in Cantera: The time of simulation was too long. Set the second number in znd_model.py line 134 to lower value. 
+* error in int(cjInd) in lines 266-277 means that the time of computation was too short and the sufficient Mach number wasn't reached. Set the second number in znd_model.py line 134 to larger value.
+
+TODO:
+* better ode integration

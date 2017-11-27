@@ -1,8 +1,6 @@
 import SDToolbox as sd
 import numpy as np
 from scipy.integrate import odeint
-import time
-import matplotlib.pyplot as plt
 
 def znd_shk(U1, P1, T1, q, mech):
     
@@ -132,7 +130,7 @@ def znd_detonation(gas,gas1,U1):
 
     # ujemna temperatura/gestosc znaczy zmniejsz 2 liczbe, bo za dlugo sie liczy  
     # blad w int(cjInd) znaczy zwieksz 2 liczbe bo za krotko sie liczy i nie dochodzimy do M=1  
-    tel = np.linspace(0, 0.000005, num=100000);
+    tel = np.linspace(0, 0.000003, num=100000);
 
     out = odeint(ZNDReactor, y0, tel, args=(gas,U1,r1,PSC),
                                 full_output = 0, col_deriv = False,
@@ -266,15 +264,20 @@ def znd_detonation(gas,gas1,U1):
 
     #############################################################
     #%Find reaction LENGTH based on CJ point M = 0.9
-    Ind = np.where((outputM <= 0.9001) & (outputM >= 0.8999))
+    Ind = np.where((outputM <= 0.901) & (outputM >= 0.899))
     Ind = int(np.mean(Ind))
     
     reactionLen09 = outputDistance[Ind]
     #%Find reaction LENGTH based on CJ point M = 0.75
-    Ind = np.where((outputM <= 0.7501) & (outputM >= 0.7499))
+    Ind = np.where((outputM <= 0.751) & (outputM >= 0.749))
     Ind = int(np.mean(Ind))
     
     reactionLen075 = outputDistance[Ind]
+    
+    # von neumann
+    pvn = np.max(outputP)
+    Ind = np.where(np.max(outputP))
+    tvn = outputT[Ind]
     #############################################################
     
     if (k == 1):
@@ -349,7 +352,7 @@ def znd_detonation(gas,gas1,U1):
         outputExo_time_ZND = outputTime[tstep2] - outputTime[tstep1]; 
         outputExo_len_ZND = outputDistance[tstep2] - outputDistance[tstep1];
     
-    return np.array([reactionLen09,reactionLen075,rZoneGradTemp]) # in m
+    return np.array([np.max(outputM), pvn, tvn, reactionLen09,reactionLen075,rZoneGradTemp]) # in m
 
 def soundSpeedM(a):
     # Matlab  SOUNDSPEED  - Speed of sound (m/s).
@@ -360,7 +363,7 @@ def soundSpeedM(a):
     return b
 
 ##########################################################################
-
+'''
 ###########
 # EXAMPLE #
 ###########
@@ -372,3 +375,4 @@ mech = 'h2air_highT.cti'
 out = znd_CJ(P1, T1, q, mech)
 print 'Lengths in m:'
 print out[1]
+'''
