@@ -39,7 +39,7 @@ print q
 print 'Ea_R is: {}, Tps is: {} K'.format(Ea_R, Tps)
 
 # calculate ZND detonation to get 0.75 Ma reaction length [m]
-znd_model.endtime = 0.000003 # need as a global variable; initial end time of odes integration
+znd_model.endtime = 0.000004 # need as a global variable; initial end time of odes integration
 [_, [maxM, _, Tvn, _, reaction_length, _]] = znd_model.znd_CJ(Pinit, Tinit, q, mech)
 print 'Maximum Mach was {}, Reaction length is: {} m, Tvn is {}'.format(maxM,reaction_length,Tvn)
 

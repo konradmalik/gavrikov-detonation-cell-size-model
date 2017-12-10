@@ -130,6 +130,9 @@ def znd_detonation(gas,gas1,U1):
 
     # ujemna temperatura/gestosc znaczy zmniejsz 2 liczbe, bo za dlugo sie liczy  
     # blad w int(cjInd) znaczy zwieksz 2 liczbe bo za krotko sie liczy i nie dochodzimy do M=1
+    global endtime
+    lastendtimes = [endtime]
+    step = 1e-6
     while True:
         try:
             global endtime
@@ -298,13 +301,21 @@ def znd_detonation(gas,gas1,U1):
             
         except sd.CanteraError:
             global endtime
-            endtime -= 1e-6
+            endtime -= step
+            if endtime in lastendtimes: step = step/10
             print('New end time: {}'.format(endtime))
+            print('step: {}'.format(step))
+            print('lastendtimes: {}'.format(lastendtimes))
+            lastendtimes.append(endtime)
             continue
         except ValueError:
             global endtime
-            endtime += 1e-6
+            endtime += step
+            if endtime in lastendtimes: step = step/10
             print('New end time: {}'.format(endtime))
+            print('step: {}'.format(step))
+            print('lastendtimes: {}'.format(lastendtimes))
+            lastendtimes.append(endtime)
             continue
         else:
             #the rest of the code
