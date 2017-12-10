@@ -1,7 +1,7 @@
 import SDToolbox as sd
 import numpy as np
+import znd_model
 from effective_activation_energy import ea_r
-from znd_model import znd_CJ
 from gavrikov import gavrikov_model
 
 ##############################################################################
@@ -39,7 +39,8 @@ print q
 print 'Ea_R is: {}, Tps is: {} K'.format(Ea_R, Tps)
 
 # calculate ZND detonation to get 0.75 Ma reaction length [m]
-[_, [maxM, _, Tvn, _, reaction_length, _]] = znd_CJ(Pinit, Tinit, q, mech)
+znd_model.endtime = 0.000003 # need as a global variable; initial end time of odes integration
+[_, [maxM, _, Tvn, _, reaction_length, _]] = znd_model.znd_CJ(Pinit, Tinit, q, mech)
 print 'Maximum Mach was {}, Reaction length is: {} m, Tvn is {}'.format(maxM,reaction_length,Tvn)
 
 # gavrikov

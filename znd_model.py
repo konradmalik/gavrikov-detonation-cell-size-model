@@ -129,169 +129,187 @@ def znd_detonation(gas,gas1,U1):
 
 
     # ujemna temperatura/gestosc znaczy zmniejsz 2 liczbe, bo za dlugo sie liczy  
-    # blad w int(cjInd) znaczy zwieksz 2 liczbe bo za krotko sie liczy i nie dochodzimy do M=1  
-    tel = np.linspace(0, 0.000003, num=100000);
+    # blad w int(cjInd) znaczy zwieksz 2 liczbe bo za krotko sie liczy i nie dochodzimy do M=1
+    while True:
+        try:
+            global endtime
+            #code with possible error
+            tel = np.linspace(0, endtime, num=endtime*10**9);
 
-    out = odeint(ZNDReactor, y0, tel, args=(gas,U1,r1,PSC),
-                                full_output = 0, col_deriv = False,
-                                printmessg = 1, rtol = 1.e-5, atol = 1.e-8)
-    #print out
-    b,a = out.shape
+            out = odeint(ZNDReactor, y0, tel, args=(gas,U1,r1,PSC),
+                                        full_output = 0, col_deriv = False,
+                                        printmessg = 1, rtol = 1.e-5, atol = 1.e-8)
+            #print out
+            b,a = out.shape
 
-    i = 1;
-    j = 1;
-    
-    y = np.array([0]*nsp, dtype=np.float) 
+            i = 1;
+            j = 1;
+            
+            y = np.array([0]*nsp, dtype=np.float) 
 
-    #Initalize ouput matrices
-    outputInd_len_ZND = 0;
-    outputInd_time_ZND = 0;
-    outputExo_len_ZND = 0;
-    outputExo_time_ZND = 0;
-    outputTime = np.array([0]*b, dtype=np.float) ;
-    outputDistance = np.array([0]*b, dtype=np.float) ;
-    outputP = np.array([0]*b, dtype=np.float) ;
-    outputT = np.array([0]*b, dtype=np.float) ;
-    outputU = np.array([0]*b, dtype=np.float) ;
-    outputRho = np.array([0]*b, dtype=np.float) ;
-    outputThermicity = np.array([0]*b, dtype=np.float) ;
-    outputM = np.array([0]*b, dtype=np.float) ;
-    outputAf = np.array([0]*b, dtype=np.float) ;
-    outputG = np.array([0]*b, dtype=np.float) ;
-    outputWt = np.array([0]*b, dtype=np.float) ;
-    outputSonic = np.array([0]*b, dtype=np.float) ;
-    outputSpecies = np.zeros(shape=(b,nsp), dtype=np.float);
-    temp_grad = np.array([0]*b, dtype=np.float);
+            #Initalize ouput matrices
+            outputInd_len_ZND = 0;
+            outputInd_time_ZND = 0;
+            outputExo_len_ZND = 0;
+            outputExo_time_ZND = 0;
+            outputTime = np.array([0]*b, dtype=np.float) ;
+            outputDistance = np.array([0]*b, dtype=np.float) ;
+            outputP = np.array([0]*b, dtype=np.float) ;
+            outputT = np.array([0]*b, dtype=np.float) ;
+            outputU = np.array([0]*b, dtype=np.float) ;
+            outputRho = np.array([0]*b, dtype=np.float) ;
+            outputThermicity = np.array([0]*b, dtype=np.float) ;
+            outputM = np.array([0]*b, dtype=np.float) ;
+            outputAf = np.array([0]*b, dtype=np.float) ;
+            outputG = np.array([0]*b, dtype=np.float) ;
+            outputWt = np.array([0]*b, dtype=np.float) ;
+            outputSonic = np.array([0]*b, dtype=np.float) ;
+            outputSpecies = np.zeros(shape=(b,nsp), dtype=np.float);
+            temp_grad = np.array([0]*b, dtype=np.float);
 
-    # Extract TIME, TEMPERATURE, PRESSURE, and DENSITY arrays from integrator output
-    for i in range(0,b):
+            # Extract TIME, TEMPERATURE, PRESSURE, and DENSITY arrays from integrator output
+            for i in range(0,b):
+                
+                outputTime[i] = tel[i];
+
+                for m in range(3,a):
+                    y[m-3] = abs(out[i,m]);
+                    
+                gas.TDY = gas.T, out[i,1], y;
+
+                wt = gas.mean_molecular_weight;
+
+                Tout = (out[i,0]*PSC/out[i,1])*(wt/sd.gas_constant);
+                
+                gas.TPY = Tout, out[i,0]*PSC, y;
+                    
+                outputP[i] = out[i,0]*PSC/sd.one_atm;
+                outputRho[i] = out[i,1];
+                outputDistance[i] = out[i,2];
+                outputT[i] = Tout;
+                for k in range(0,nsp):
+                    outputSpecies[i,k] = y[k];
+
+                # Extract WEIGHT, GAMMA, SOUND SPEED, VELOCITY, MACH NUMBER, c^2-U^2,
+                # THERMICITY, and TEMPERATURE GRADIENT
         
-        outputTime[i] = tel[i];
+                den = outputRho[i];
+                nsp = gas.n_species;
 
-        for m in range(3,a):
-            y[m-3] = abs(out[i,m]);
+                #Vectors
+                wdot = gas.net_production_rates;
+                hs = gas.standard_enthalpies_RT*sd.gas_constant*Tout;
+                mw = gas.molecular_weights;
+
+                #Scalars
+                cp = gas.cp_mass;
+                cv = gas.cv_mass;
+                g = cp/cv;
+                af = np.sqrt(g*sd.gas_constant/wt*Tout); #% soundspeed(gas);
+                r = gas.density;
+                    
+                U = U1*r1/r;
+                M = U/af;                               #Mach Number
+                eta = 1 - M**2;                          #Sonic Parameter
+                sonic = eta*af**2;
+
+                sum = 0;
+                for n in range(0,nsp):
+                    h = hs[n]/mw[n];
+                    wd = wdot[n];
+                    w = mw[n];
+                    dykdt = w*wd/den;
+                    drdy = -den*wt/w;
+                    term = den*h/(cp*Tout);
+                    sum = sum - (drdy + term)*dykdt;
+                    
+                sigma = sum/den;                        #Thermicity
+                Pdot = -U**2*sum/eta/PSC;               #Pressure Derivative
+                rdot = -sum/eta;                        #Density Derivative
+
+                # FIND TEMPERATURE GRADIENT
+                temp_grad[i] = Tout*(Pdot/out[i,0] - rdot/r);
+
+                    
+                # Assign ouptput structure
+                outputU[i] = U;
+                outputThermicity[i] = sigma;
+                outputM[i] = M;
+                outputAf[i] = af;
+                outputG[i] = g;
+                outputWt[i] = wt;
+                outputSonic[i] = sonic;
+
+            #%Find INDUCTION TIME and LENGTH based on MAXIMUM TEMPERATURE GRADIENT and Maximum
+            #%Thermicity
+                
+            # Procdure to find max value with 
+            maxTgrad = np.max(temp_grad)
+            maxThermicity = np.max(outputThermicity)
+            k1 = np.where(temp_grad == maxTgrad)
+            n = np.where(outputThermicity == maxThermicity)
+
+            #print 'reaction zone according to MaxGradTemp'
+            rZoneGradTemp = outputDistance[k1]
+            #print rZoneGradTemp
             
-        gas.TDY = gas.T, out[i,1], y;
+            outputInd_time_ZND = outputTime[n];
+            #print 'reaction zone according to MaxThermicity'
+            outputInd_len_ZND = outputDistance[n];
+            #print outputInd_len_ZND
+            
+            maxT = np.max(outputT)
+            k = np.where(outputT == maxT)
+            # maxT,k = outputT[:].max(0),outputT[:].argmax(0)
 
-        wt = gas.mean_molecular_weight;
+            #print 'reaction zone according to MaxTemp'
+            rZoneMaxTemp = outputDistance[k]
+            #print rZoneMaxTemp
 
-        Tout = (out[i,0]*PSC/out[i,1])*(wt/sd.gas_constant);
+            #############################################################
+            #%Find reaction LENGTH based on CJ point M = 0.9
+            Ind = np.where((outputM <= 0.901) & (outputM >= 0.899))
+            Ind = int(np.mean(Ind))
+            
+            reactionLen09 = outputDistance[Ind]
+            #%Find reaction LENGTH based on CJ point M = 0.75
+            Ind = np.where((outputM <= 0.751) & (outputM >= 0.749))
+            Ind = int(np.mean(Ind))
+            
+            reactionLen075 = outputDistance[Ind]
+            
+            # von neumann
+            pvn = np.max(outputP)
+            Ind = np.where(np.max(outputP))
+            tvn = outputT[Ind]
+            #############################################################
+            
+            if (k == 1):
+                maxx = outputInd_len_ZND*5;
+            else:
+                maxx = outputDistance[k];
+
+            minx = 0;
+
+            maxT = np.max(outputT)+0.1*np.min(outputT);
+            minT = np.min(outputT)-0.1*np.min(outputT);
+            maxP = np.max(outputP)+0.1*np.min(outputP);
+            minP = np.min(outputP)-0.1*np.min(outputP);
+            
+        except sd.CanteraError:
+            global endtime
+            endtime -= 1e-6
+            print('New end time: {}'.format(endtime))
+            continue
+        except ValueError:
+            global endtime
+            endtime += 1e-6
+            print('New end time: {}'.format(endtime))
+            continue
+        else:
+            #the rest of the code
+            break
         
-        gas.TPY = Tout, out[i,0]*PSC, y;
-            
-        outputP[i] = out[i,0]*PSC/sd.one_atm;
-        outputRho[i] = out[i,1];
-        outputDistance[i] = out[i,2];
-        outputT[i] = Tout;
-        for k in range(0,nsp):
-            outputSpecies[i,k] = y[k];
-
-        # Extract WEIGHT, GAMMA, SOUND SPEED, VELOCITY, MACH NUMBER, c^2-U^2,
-        # THERMICITY, and TEMPERATURE GRADIENT
- 
-        den = outputRho[i];
-        nsp = gas.n_species;
-
-        #Vectors
-        wdot = gas.net_production_rates;
-        hs = gas.standard_enthalpies_RT*sd.gas_constant*Tout;
-        mw = gas.molecular_weights;
-
-        #Scalars
-        cp = gas.cp_mass;
-        cv = gas.cv_mass;
-        g = cp/cv;
-        af = np.sqrt(g*sd.gas_constant/wt*Tout); #% soundspeed(gas);
-        r = gas.density;
-            
-        U = U1*r1/r;
-        M = U/af;                               #Mach Number
-        eta = 1 - M**2;                          #Sonic Parameter
-        sonic = eta*af**2;
-
-        sum = 0;
-        for n in range(0,nsp):
-            h = hs[n]/mw[n];
-            wd = wdot[n];
-            w = mw[n];
-            dykdt = w*wd/den;
-            drdy = -den*wt/w;
-            term = den*h/(cp*Tout);
-            sum = sum - (drdy + term)*dykdt;
-            
-        sigma = sum/den;                        #Thermicity
-        Pdot = -U**2*sum/eta/PSC;               #Pressure Derivative
-        rdot = -sum/eta;                        #Density Derivative
-
-        # FIND TEMPERATURE GRADIENT
-        temp_grad[i] = Tout*(Pdot/out[i,0] - rdot/r);
-
-            
-        # Assign ouptput structure
-        outputU[i] = U;
-        outputThermicity[i] = sigma;
-        outputM[i] = M;
-        outputAf[i] = af;
-        outputG[i] = g;
-        outputWt[i] = wt;
-        outputSonic[i] = sonic;
-
-    #%Find INDUCTION TIME and LENGTH based on MAXIMUM TEMPERATURE GRADIENT and Maximum
-    #%Thermicity
-        
-    # Procdure to find max value with 
-    maxTgrad = np.max(temp_grad)
-    maxThermicity = np.max(outputThermicity)
-    k1 = np.where(temp_grad == maxTgrad)
-    n = np.where(outputThermicity == maxThermicity)
-
-    #print 'reaction zone according to MaxGradTemp'
-    rZoneGradTemp = outputDistance[k1]
-    #print rZoneGradTemp
-    
-    outputInd_time_ZND = outputTime[n];
-    #print 'reaction zone according to MaxThermicity'
-    outputInd_len_ZND = outputDistance[n];
-    #print outputInd_len_ZND
-    
-    maxT = np.max(outputT)
-    k = np.where(outputT == maxT)
-    # maxT,k = outputT[:].max(0),outputT[:].argmax(0)
-
-    #print 'reaction zone according to MaxTemp'
-    rZoneMaxTemp = outputDistance[k]
-    #print rZoneMaxTemp
-
-    #############################################################
-    #%Find reaction LENGTH based on CJ point M = 0.9
-    Ind = np.where((outputM <= 0.901) & (outputM >= 0.899))
-    Ind = int(np.mean(Ind))
-    
-    reactionLen09 = outputDistance[Ind]
-    #%Find reaction LENGTH based on CJ point M = 0.75
-    Ind = np.where((outputM <= 0.751) & (outputM >= 0.749))
-    Ind = int(np.mean(Ind))
-    
-    reactionLen075 = outputDistance[Ind]
-    
-    # von neumann
-    pvn = np.max(outputP)
-    Ind = np.where(np.max(outputP))
-    tvn = outputT[Ind]
-    #############################################################
-    
-    if (k == 1):
-        maxx = outputInd_len_ZND*5;
-    else:
-        maxx = outputDistance[k];
-
-    minx = 0;
-
-    maxT = np.max(outputT)+0.1*np.min(outputT);
-    minT = np.min(outputT)-0.1*np.min(outputT);
-    maxP = np.max(outputP)+0.1*np.min(outputP);
-    minP = np.min(outputP)-0.1*np.min(outputP);
-
     # %Check for Eigenvalue Detonation
 
     if(n == b):
@@ -372,6 +390,7 @@ T1 = 300;
 q = 'H2:2 O2:1 N2:3.76'
 mech = 'h2air_highT.cti'
 
+endtime = 0.000035
 out = znd_CJ(P1, T1, q, mech)
 print 'Lengths in m:'
 print out[1]
