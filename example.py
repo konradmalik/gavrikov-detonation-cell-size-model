@@ -35,13 +35,13 @@ q = '{0}:{1:0.9g}, O2:{2:0.4g}, N2:{3:0.4g}'.format(fuel_specie, fuel_vol, o2_vo
 print q
 
 # calculate Ea/R, postshock T
-[Ea_R, Tps] = ea_r(Pinit, Tinit, q, mech)
-print 'Ea_R is: {}, Tps is: {} K'.format(Ea_R, Tps)
+[Ea_R, Tps, Tvn] = ea_r(Pinit, Tinit, q, mech)
+print 'Ea_R is: {}, Tps is: {} K, Tvn is: {} K'.format(Ea_R, Tps, Tvn)
 
 # calculate ZND detonation to get 0.75 Ma reaction length [m]
 znd_model.endtime = 0.000004 # need as a global variable; initial end time of odes integration
-[_, [maxM, _, Tvn, _, reaction_length, _]] = znd_model.znd_CJ(Pinit, Tinit, q, mech)
-print 'Maximum Mach was {}, Reaction length is: {} m, Tvn is {}'.format(maxM,reaction_length,Tvn)
+[_, [maxM, _, reaction_length, _]] = znd_model.znd_CJ(Pinit, Tinit, q, mech)
+print 'Maximum Mach was {}, Reaction length is: {} m'.format(maxM,reaction_length)
 
 # gavrikov
 cell = 1000.0*gavrikov_model(reaction_length, Ea_R, Tps, Tvn, Tinit) # in mm

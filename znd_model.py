@@ -281,10 +281,6 @@ def znd_detonation(gas,gas1,U1):
             
             reactionLen075 = outputDistance[Ind]
             
-            # von neumann
-            pvn = np.max(outputP)
-            Ind = np.where(np.max(outputP))
-            tvn = outputT[Ind]
             #############################################################
             
             if (k == 1):
@@ -381,7 +377,7 @@ def znd_detonation(gas,gas1,U1):
         outputExo_time_ZND = outputTime[tstep2] - outputTime[tstep1]; 
         outputExo_len_ZND = outputDistance[tstep2] - outputDistance[tstep1];
     
-    return np.array([np.max(outputM), pvn, tvn, reactionLen09,reactionLen075,rZoneGradTemp]) # in m
+    return np.array([np.max(outputM), reactionLen09,reactionLen075,rZoneGradTemp]) # in m
 
 def soundSpeedM(a):
     # Matlab  SOUNDSPEED  - Speed of sound (m/s).

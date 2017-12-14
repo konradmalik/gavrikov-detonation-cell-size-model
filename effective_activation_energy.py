@@ -198,7 +198,7 @@ def ea_r(Pinit, Tinit, q, mech):
     [cj_speed,_] = CJspeed(Pinit, Tinit, q, mech, 0);  
     
     gas1 = PostShock_fr(cj_speed, Pinit, Tinit, q, mech)
-    T1 = gas1.T
+    T1 = gas1.T#its Von Neumann temp
     
     # 1.6 D
     gas2 = PostShock_fr(1.6*cj_speed, Pinit, Tinit, q, mech)
@@ -223,8 +223,10 @@ def ea_r(Pinit, Tinit, q, mech):
     exo_time2 = out2.exo_time2
     
     #Effective Activation Energy * Tvn
-    Ea_R = log(ind_time2/ind_time1) / ((1.0/T2) - (1.0/T1))
-    #Post shock pressure
+    Ea_R = log(ind_time1/ind_time2) / ((1.0/T1) - (1.0/T2))
+    #Post shock temp
     Tps = T3
+    #Von neumann temp
+    Tvn = T1
     
-    return [Ea_R,Tps]
+    return [Ea_R,Tps,Tvn]
